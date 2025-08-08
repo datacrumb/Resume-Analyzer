@@ -1,4 +1,5 @@
 import gspread
+import os
 from typing import List, Tuple, Optional
 from ..utils.config import (
     SPREADSHEET_ID, SHEET1_ID, JOBS_SHEET_ID,
@@ -11,7 +12,16 @@ class GoogleSheetsManager:
     """Handles Google Sheets operations"""
     
     def __init__(self):
-        self.client = gspread.service_account(filename="credentials.json")
+        # Check if we're on Heroku (environment variable) or local (file)
+        if os.getenv('GOOGLE_SHEETS_CREDENTIALS'):
+            # On Heroku - use environment variable
+            import json
+            credentials_info = json.loads(os.getenv('GOOGLE_SHEETS_CREDENTIALS'))
+            self.client = gspread.service_account_from_dict(credentials_info)
+        else:
+            # Local development - use file
+            self.client = gspread.service_account(filename="credentials.json")
+        
         # Set longer timeout for Google Sheets operations
         self.client.timeout = 60  # 60 seconds timeout
         self.spreadsheet = self.client.open_by_key(SPREADSHEET_ID)
