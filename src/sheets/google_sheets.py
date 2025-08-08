@@ -4,6 +4,8 @@ from typing import List, Tuple, Optional
 from ..utils.config import (
     SPREADSHEET_ID, SHEET1_ID, JOBS_SHEET_ID,
     SHEET1_POSITION_COL, SHEET1_RESUME_URL_COL, SHEET1_SCORE_COL,
+    SHEET1_REASONING_COL, SHEET1_TECHNICAL_SKILLS_COL, SHEET1_EXPERIENCE_RELEVANCE_COL,
+    SHEET1_SOFT_SKILLS_COL, SHEET1_EDUCATION_CERT_COL, SHEET1_CAREER_PROGRESSION_COL,
     JOBS_TITLE_COL, JOBS_DESCRIPTION_COL, JOBS_REQUIREMENTS_COL
 )
 from ..models.resume import Resume, JobDetails
@@ -47,12 +49,16 @@ class GoogleSheetsManager:
         headers = all_values[0]
         resumes = []
         
+        # Find the Score column index
+        try:
+            score_col_index = headers.index(SHEET1_SCORE_COL)
+        except ValueError:
+            print(f"Score column '{SHEET1_SCORE_COL}' not found in headers")
+            return []
+        
         for i, row in enumerate(all_values[1:], start=2):
-            # Check if score column (2nd-to-last column) is empty
+            # Check if score column is empty
             if len(row) > 0:
-                # Score is in 2nd-to-last column, Reasoning in last column
-                score_col_index = len(headers) - 2  # 2nd-to-last column
-                
                 # Check if score column exists and is empty
                 if len(row) <= score_col_index or not row[score_col_index].strip():
                     if len(row) > max(SHEET1_POSITION_COL, SHEET1_RESUME_URL_COL):
@@ -96,7 +102,7 @@ class GoogleSheetsManager:
         return None
     
     def update_resume_result(self, row_index: int, result: dict) -> bool:
-        """Update the score and reasoning for a specific resume row"""
+        """Update the detailed breakdown scores for a specific resume row"""
         try:
             # Get the current headers to determine column positions
             all_values = self.sheet1.get_all_values()
@@ -104,23 +110,41 @@ class GoogleSheetsManager:
                 return False
             
             headers = all_values[0]
-            total_cols = len(headers)
             
-            # Score goes in second-to-last column, reasoning in last column
-            score_col = total_cols - 2  # Second-to-last column (0-indexed)
-            reasoning_col = total_cols - 1  # Last column (0-indexed)
-            
-            # Extract score and reasoning from result
-            score = result.get('score', '')
+            # Extract all scores from result
+            overall_score = result.get('score', '')
             reasoning = result.get('reasoning', 'No reasoning provided')
             
-            # Only update if we have a valid score
-            if score and score != "":
-                # Update both cells (convert to 1-indexed for gspread)
-                self.sheet1.update_cell(row_index, score_col + 1, score)
-                self.sheet1.update_cell(row_index, reasoning_col + 1, reasoning)
+            # Only update if we have a valid overall score
+            if overall_score and overall_score != "":
+                # Map result fields to column names
+                field_mapping = {
+                    'score': SHEET1_SCORE_COL,
+                    'reasoning': SHEET1_REASONING_COL,
+                    'technical_skills_match': SHEET1_TECHNICAL_SKILLS_COL,
+                    'experience_relevance': SHEET1_EXPERIENCE_RELEVANCE_COL,
+                    'soft_skills_cultural_fit': SHEET1_SOFT_SKILLS_COL,
+                    'education_certifications': SHEET1_EDUCATION_CERT_COL,
+                    'career_progression': SHEET1_CAREER_PROGRESSION_COL
+                }
                 
-                print(f"Updated row {row_index}: Score={score}, Reasoning={reasoning[:50]}...")
+                # Update each column
+                updated_fields = 0
+                for field, column_name in field_mapping.items():
+                    value = result.get(field, '')
+                    if value:  # Only update if we have a value
+                        try:
+                            # Find column index
+                            if column_name in headers:
+                                col_index = headers.index(column_name)
+                                self.sheet1.update_cell(row_index, col_index + 1, value)
+                                updated_fields += 1
+                            else:
+                                print(f"Column '{column_name}' not found in headers")
+                        except Exception as e:
+                            print(f"Error updating column '{column_name}': {e}")
+                
+                print(f"Updated row {row_index}: Score={overall_score}, {updated_fields} detailed fields")
                 return True
             else:
                 print(f"Skipping row {row_index}: No valid score to update")
