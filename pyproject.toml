@@ -1,0 +1,22 @@
+[project]
+name = "resume-analysis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "gspread>=6.2.1",
+    "openai>=1.0.0",
+    "schedule>=1.2.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "PyPDF2>=3.0.0",
+    "docx2pdf>=0.1.8",
+    "python-docx>=0.8.11",
+    "Pillow>=10.0.0",
+    "pdf2image>=1.16.3",
+    "docx2txt>=0.8",
+    "mammoth>=1.6.0",
+    "beautifulsoup4>=4.12.0",
+    "PyMuPDF>=1.23.0",
+]
